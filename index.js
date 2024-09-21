@@ -8,7 +8,7 @@ const { sendEmail } = require("./service/emailService");
 
 const app = express();
 app.use(cors());
-const port =  process.env.PORT || 8080;
+const port = process.env.PORT || 8080;
 
 app.use(express.json());
 
@@ -27,53 +27,71 @@ app.get('/', (req, res) => {
 
 app.post("/auth", async (req, res) => {
 
-    //lowercase email
+  //lowercase email
 
-    req.body.email = req.body.email.toLowerCase();
-    const { email } = req.body;
+  req.body.email = req.body.email.toLowerCase();
+  const { email } = req.body;
 
-    // email validation with regex
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-        return res.status(400).json({ message: "Invalid email" });
-    }
-    // kullanıcı kayıtlıysa kayıtlı email adresine email gönderilir ve confirmCode oluşturulur
-    let user = await WebUser.findOne({ email });
-    var confirmCode = Math.floor(1000 + Math.random() * 9000);
+  // email validation with regex
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ message: "Invalid email" });
+  }
+  // kullanıcı kayıtlıysa kayıtlı email adresine email gönderilir ve confirmCode oluşturulur
+  let user = await WebUser.findOne({ email });
+  var confirmCode = Math.floor(1000 + Math.random() * 9000);
 
-    if (!user) {
-        user = await WebUser.create({ email, confirmCode });
+  if (!user) {
+    user = await WebUser.create({ email, confirmCode });
 
-        // email send
-        sendEmail(email, confirmCode);
-        return res.json({ id: user._id });
-    } else {
-        user.confirmCode = confirmCode;
-        await user.save();
-        sendEmail(email, confirmCode);
-        return res.json({ id: user._id });
-    }
+    // email send
+    sendEmail(email, confirmCode);
+    return res.json({ id: user._id });
+  } else {
+    user.confirmCode = confirmCode;
+    await user.save();
+    sendEmail(email, confirmCode);
+    return res.json({ id: user._id });
+  }
 });
 
 app.post("/confirm", async (req, res) => {
-    console.log(req.body);
+  console.log(req.body);
 
 
-    //lowercase email
-    req.body.email = req.body.email.toLowerCase();
-    const { email, confirmCode } = req.body;
-    let user = await WebUser.findOne({ email });
-    if (!user) {
-        return res.status(400).json({ message: "Invalid email" });
-    }
-    if (user.confirmCode == confirmCode) {
-        user.confirmed = true;
-        await user.save();
-        return res.json({ message: "Confirmed" });
-    } else {
-        return res.status(400).json({ message: "Invalid confirm code" });
-    }
+  //lowercase email
+  req.body.email = req.body.email.toLowerCase();
+  const { email, confirmCode } = req.body;
+  let user = await WebUser.findOne({ email });
+  if (!user) {
+    return res.status(400).json({ message: "Invalid email" });
+  }
+  if (user.confirmCode == confirmCode) {
+    user.confirmed = true;
+    await user.save();
+    return res.json({ message: "Confirmed" });
+  } else {
+    return res.status(400).json({ message: "Invalid confirm code" });
+  }
 });
+
+
+
+
+app.post("/checkuser", async (req, res) => {
+
+  req.body.email = req.body.email.toLowerCase();
+  const { email } = req.body;
+  let user = await WebUser.findOne({ email });
+  if (!user) {
+    return res.status(400).json({ message: "User not found" });
+  }
+  if (user.confirmed) {
+    return res.status(200).json({ message: "Confirmed" });
+  }
+  return res.status(400).json({ message: "Not confirmed" });
+}
+);
 
 
 app.listen(port, () => {
