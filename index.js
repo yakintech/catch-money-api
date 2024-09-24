@@ -132,9 +132,10 @@ app.post('/expense', async (req, res) => {
   }
 });
 
+
 app.get('/expense', async (req, res) => {
   try {
-    const expenses = await Expense.find();
+    const expenses = await Expense.find().populate('category', 'name -_id').select('-__v');
     res.status(200).json(expenses);
   } catch (error) {
     res.status(500).json({ message: error.message });
