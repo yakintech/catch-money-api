@@ -1,5 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const multer = require('multer');
+const path = require('path');
 const WebUser = require('./models/webUser');
 const Income = require('./models/income');
 const Expense = require('./models/expense');
@@ -13,6 +15,18 @@ app.use(cors());
 const port = process.env.PORT || 8080;
 
 app.use(express.json());
+
+// Multer configuration
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/');
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ storage: storage });
 
 mongoose.connect('mongodb+srv://techcareer_swift:qSJrSgUN9qfgs0Fa@cluster0.jcus0vv.mongodb.net/money-catcher-db').then(() => {
   console.log('Connected to MongoDB');
@@ -122,16 +136,19 @@ app.delete('/income/:id', async (req, res) => {
 });
 
 // Expense endpoints
-app.post('/expense', async (req, res) => {
+app.post('/expense', upload.array('images', 10), async (req, res) => {
   try {
-    const expense = new Expense(req.body);
+    const expenseData = {
+      ...req.body,
+      images: req.files ? req.files.map(file => file.path) : []
+    };
+    const expense = new Expense(expenseData);
     await expense.save();
     res.status(201).json(expense);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 });
-
 
 app.get('/expense', async (req, res) => {
   try {
