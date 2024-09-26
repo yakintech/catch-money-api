@@ -158,7 +158,52 @@ app.get('/expense', async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+app.get('/expense/filter', async (req, res) => {
+  try {
+    const { period, category } = req.query;
+    let filter = {};
 
+    if (period !== 'all') {
+      let startDate = new Date(); // Default to today
+      startDate.setHours(0, 0, 0, 0);
+      let endDate = new Date();
+
+      switch (period) {
+        case 'yesterday':
+          startDate.setDate(startDate.getDate() - 1);
+          endDate = new Date(startDate);
+          endDate.setHours(23, 59, 59, 999);
+          filter.date = { $gte: startDate, $lte: endDate };
+          break;
+        case 'last_week':
+          startDate.setDate(startDate.getDate() - 7);
+          filter.date = { $gte: startDate };
+          break;
+        case 'last_month':
+          startDate.setMonth(startDate.getMonth() - 1);
+          filter.date = { $gte: startDate };
+          break;
+        case 'today':
+        default:
+          filter.date = { $gte: startDate };
+          break;
+      }
+    }
+
+    if (category) {
+      filter.category = category;
+    }
+
+    const expenses = await Expense.find(filter)
+      .populate('category', 'name -_id')
+      .select('-__v')
+      .sort({ date: -1 }); // Sort by date in descending order
+
+    res.status(200).json(expenses);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 app.put('/expense/:id', async (req, res) => {
   try {
     const expense = await Expense.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -196,7 +241,7 @@ app.post('/category', async (req, res) => {
 
 app.get('/category', async (req, res) => {
   try {
-    const categories = await Category.find();
+    const categories = await Category.find().select('_id name');
     res.status(200).json(categories);
   } catch (error) {
     res.status(500).json({ message: error.message });
