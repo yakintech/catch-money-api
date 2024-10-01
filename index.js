@@ -62,6 +62,22 @@ app.post("/auth", async (req, res) => {
   }
 });
 
+
+app.post("/login/gmail", async (req, res) => {
+  req.body.email = req.body.email.toLowerCase();
+  const { email } = req.body;
+
+  let user = await WebUser.findOne({ email });
+
+  if (!user) {
+    //user create
+    user = await WebUser.create({ email, confirmed: true });
+    return res.json({ id: user._id });
+  } else {
+    return res.json({ id: user._id });
+  }
+});
+
 app.post("/confirm", async (req, res) => {
   req.body.email = req.body.email.toLowerCase();
   const { email, confirmCode } = req.body;
