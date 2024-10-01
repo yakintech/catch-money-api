@@ -67,11 +67,13 @@ app.post("/login/gmail", async (req, res) => {
   req.body.email = req.body.email.toLowerCase();
   const { email } = req.body;
 
+  console.log("email", email);
+
   let user = await WebUser.findOne({ email });
 
   if (!user) {
     //user create
-    user = await WebUser.create({ email, confirmed: true });
+    user = await WebUser.create({ email, confirmed: true, confirmCode: "gmail" });
     return res.json({ id: user._id });
   } else {
     return res.json({ id: user._id });
